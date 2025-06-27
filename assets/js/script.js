@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initParallaxEffects();
     initLoadingStates();
     initAccessibility();
+    initBreadcrumbs();
+    initPageTransitions();
+    initNavigationSearch();
 });
 
 // Navigation functionality
@@ -48,29 +51,45 @@ function initNavigation() {
         lastScrollTop = scrollTop;
     });
     
-    // Active link highlighting
+    // Active link highlighting for single-page sections
     const sections = document.querySelectorAll('section[id]');
     
-    window.addEventListener('scroll', function() {
-        const scrollPosition = window.scrollY + 100;
-        
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            const sectionHeight = section.offsetHeight;
-            const sectionId = section.getAttribute('id');
+    if (sections.length > 0) {
+        window.addEventListener('scroll', function() {
+            const scrollPosition = window.scrollY + 100;
             
-            if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-                navLinks.forEach(link => {
-                    link.classList.remove('text-blue-600');
-                    link.classList.add('text-gray-700');
-                    
-                    if (link.getAttribute('href') === `#${sectionId}`) {
-                        link.classList.add('text-blue-600');
-                        link.classList.remove('text-gray-700');
-                    }
-                });
-            }
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.offsetHeight;
+                const sectionId = section.getAttribute('id');
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('text-blue-600');
+                        link.classList.add('text-gray-700');
+                        
+                        if (link.getAttribute('href') === `#${sectionId}`) {
+                            link.classList.add('text-blue-600');
+                            link.classList.remove('text-gray-700');
+                        }
+                    });
+                }
+            });
         });
+    }
+    
+    // Highlight current page navigation
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        
+        // Check if it's the current page
+        if (href === currentPage || 
+            (currentPage === 'index.html' && href === '#home') ||
+            (currentPage === '' && href === '#home')) {
+            link.classList.add('text-blue-600');
+            link.classList.remove('text-gray-700');
+        }
     });
 }
 
@@ -405,13 +424,36 @@ function initScrollToTop() {
     const scrollButton = document.getElementById('scroll-to-top');
     
     if (scrollButton) {
+        // Add progress ring
+        const progressRing = document.createElement('div');
+        progressRing.className = 'absolute inset-0 rounded-full';
+        progressRing.innerHTML = `
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2" fill="none" class="text-blue-200" />
+                <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2" fill="none" class="text-blue-600 transition-all duration-300" 
+                        stroke-dasharray="125.6" stroke-dashoffset="125.6" id="progress-circle" />
+            </svg>
+        `;
+        scrollButton.appendChild(progressRing);
+        
         window.addEventListener('scroll', function() {
-            if (window.scrollY > 300) {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = scrollTop / docHeight;
+            const progressCircle = document.getElementById('progress-circle');
+            
+            if (scrollTop > 300) {
                 scrollButton.classList.remove('opacity-0');
                 scrollButton.classList.add('opacity-100');
             } else {
                 scrollButton.classList.add('opacity-0');
                 scrollButton.classList.remove('opacity-100');
+            }
+            
+            // Update progress ring
+            if (progressCircle) {
+                const offset = 125.6 - (scrollPercent * 125.6);
+                progressCircle.style.strokeDashoffset = offset;
             }
         });
         
@@ -443,167 +485,221 @@ function initSmoothScrolling() {
                 const elementPosition = target.offsetTop;
                 const offsetPosition = elementPosition - headerOffset;
                 
+                // Smooth scroll with easing
                 window.scrollTo({
                     top: offsetPosition,
                     behavior: 'smooth'
                 });
+                
+                // Update URL without jumping
+                if (history.pushState) {
+                    history.pushState(null, null, href);
+                }
+                
+                // Focus management for accessibility
+                setTimeout(() => {
+                    target.focus({ preventScroll: true });
+                }, 1000);
             }
         });
     });
 }
 
-// Parallax effects
-function initParallaxEffects() {
-    const parallaxElements = document.querySelectorAll('.parallax-element');
+// Breadcrumb navigation
+function initBreadcrumbs() {
+    const breadcrumbContainer = document.getElementById('breadcrumb');
+    if (!breadcrumbContainer) return;
     
-    if (parallaxElements.length > 0) {
-        window.addEventListener('scroll', function() {
-            const scrolled = window.pageYOffset;
-            const rate = scrolled * -0.5;
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const pageNames = {
+        'index.html': 'Home',
+        'about.html': 'About Us',
+        'services.html': 'Services',
+        'contact.html': 'Contact'
+    };
+    
+    let breadcrumbHTML = '<nav aria-label="Breadcrumb" class="text-sm text-gray-600 mb-6">';
+    breadcrumbHTML += '<a href="index.html" class="hover:text-blue-600 transition-colors">Home</a>';
+    
+    if (currentPage !== 'index.html' && currentPage !== '') {
+        breadcrumbHTML += ' <i class="fas fa-chevron-right mx-2"></i> ';
+        breadcrumbHTML += `<span class="text-gray-900 font-medium">${pageNames[currentPage] || 'Page'}</span>`;
+    }
+    
+    breadcrumbHTML += '</nav>';
+    breadcrumbContainer.innerHTML = breadcrumbHTML;
+}
+
+// Page transition effects
+function initPageTransitions() {
+    // Add loading animation for page transitions
+    const pageLinks = document.querySelectorAll('a[href$=".html"]');
+    
+    pageLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
             
-            parallaxElements.forEach(element => {
-                element.style.transform = `translateY(${rate}px)`;
-            });
-        });
-    }
-}
-
-// Loading states
-function initLoadingStates() {
-    // Lazy loading for images
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
-                    observer.unobserve(img);
-                }
-            });
-        });
-        
-        document.querySelectorAll('img[data-src]').forEach(img => {
-            imageObserver.observe(img);
-        });
-    }
-    
-    // Remove loading class from body when everything is loaded
-    window.addEventListener('load', function() {
-        document.body.classList.remove('loading');
-    });
-}
-
-// Accessibility features
-function initAccessibility() {
-    // Skip to content functionality
-    const skipLink = document.querySelector('.skip-to-content');
-    if (skipLink) {
-        skipLink.addEventListener('click', function(e) {
+            // Skip if it's an external link or special link
+            if (href.startsWith('http') || href.startsWith('mailto') || href.startsWith('tel')) {
+                return;
+            }
+            
             e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.focus();
-                target.scrollIntoView();
-            }
-        });
-    }
-    
-    // Keyboard navigation for dropdown menus
-    const dropdownTriggers = document.querySelectorAll('[data-dropdown-trigger]');
-    
-    dropdownTriggers.forEach(trigger => {
-        trigger.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.click();
-            }
-        });
-    });
-    
-    // Focus management for modals
-    const modals = document.querySelectorAll('.modal');
-    
-    modals.forEach(modal => {
-        const closeButtons = modal.querySelectorAll('[data-modal-close]');
-        
-        closeButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                modal.classList.add('hidden');
-                // Return focus to trigger element
-                const trigger = document.querySelector(`[data-modal-target="${modal.id}"]`);
-                if (trigger) {
-                    trigger.focus();
-                }
-            });
-        });
-        
-        // Close on Escape key
-        modal.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                this.classList.add('hidden');
-            }
+            
+            // Add loading overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-white z-50 flex items-center justify-center transition-opacity duration-300';
+            overlay.innerHTML = `
+                <div class="text-center">
+                    <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-gray-600 font-medium">Loading...</p>
+                </div>
+            `;
+            
+            document.body.appendChild(overlay);
+            
+            // Navigate after a short delay for smooth transition
+            setTimeout(() => {
+                window.location.href = href;
+            }, 500);
         });
     });
     
-    // Announce dynamic content changes to screen readers
-    function announceToScreenReader(message) {
-        const announcement = document.createElement('div');
-        announcement.setAttribute('aria-live', 'polite');
-        announcement.setAttribute('aria-atomic', 'true');
-        announcement.className = 'sr-only';
-        announcement.textContent = message;
-        
-        document.body.appendChild(announcement);
-        
-        setTimeout(() => {
-            document.body.removeChild(announcement);
-        }, 1000);
-    }
-    
-    // Make announcement function globally available
-    window.announceToScreenReader = announceToScreenReader;
-}
-
-// Utility functions
-function debounce(func, wait, immediate) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            timeout = null;
-            if (!immediate) func(...args);
-        };
-        const callNow = immediate && !timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-        if (callNow) func(...args);
-    };
-}
-
-function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-        const args = arguments;
-        const context = this;
-        if (!inThrottle) {
-            func.apply(context, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
+    // Remove loading overlay on page load
+    window.addEventListener('load', function() {
+        const overlay = document.querySelector('.loading-overlay');
+        if (overlay) {
+            overlay.remove();
         }
-    };
+    });
 }
 
-// Device detection
-function isMobile() {
-    return window.innerWidth <= 768;
+// Navigation search functionality
+function initNavigationSearch() {
+    // Create search overlay
+    const searchOverlay = document.createElement('div');
+    searchOverlay.id = 'search-overlay';
+    searchOverlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-start justify-center pt-20';
+    searchOverlay.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4">
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-search text-gray-400 mr-3"></i>
+                    <input type="text" id="search-input" placeholder="Search pages, services, or content..." 
+                           class="w-full text-lg outline-none">
+                    <button id="close-search" class="ml-3 text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="search-results" class="max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(searchOverlay);
+    
+    // Search data
+    const searchData = [
+        { title: 'Home', url: 'index.html', description: 'Homepage with overview of our services' },
+        { title: 'About Us', url: 'about.html', description: 'Company story, mission, vision and team' },
+        { title: 'Services', url: 'services.html', description: 'Software writing, modification, and testing' },
+        { title: 'Contact', url: 'contact.html', description: 'Get in touch with our team' },
+        { title: 'Software Writing', url: 'services.html#writing', description: 'Custom software development services' },
+        { title: 'Software Modification', url: 'services.html#modification', description: 'Enhancement of existing software' },
+        { title: 'Software Testing', url: 'services.html#testing', description: 'Quality assurance and testing services' },
+    ];
+    
+    // Add keyboard shortcut (Ctrl/Cmd + K)
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            toggleSearch();
+        }
+        
+        if (e.key === 'Escape') {
+            closeSearch();
+        }
+    });
+    
+    function toggleSearch() {
+        const overlay = document.getElementById('search-overlay');
+        const input = document.getElementById('search-input');
+        
+        if (overlay.classList.contains('hidden')) {
+            overlay.classList.remove('hidden');
+            input.focus();
+        } else {
+            closeSearch();
+        }
+    }
+    
+    function closeSearch() {
+        const overlay = document.getElementById('search-overlay');
+        overlay.classList.add('hidden');
+    }
+    
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    const closeButton = document.getElementById('close-search');
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        
+        if (query.length === 0) {
+            searchResults.innerHTML = '';
+            return;
+        }
+        
+        const results = searchData.filter(item => 
+            item.title.toLowerCase().includes(query) || 
+            item.description.toLowerCase().includes(query)
+        );
+        
+        displaySearchResults(results);
+    });
+    
+    closeButton.addEventListener('click', closeSearch);
+    searchOverlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSearch();
+        }
+    });
+    
+    function displaySearchResults(results) {
+        if (results.length === 0) {
+            searchResults.innerHTML = '<p class="text-gray-500 text-center py-4">No results found</p>';
+            return;
+        }
+        
+        const resultsHTML = results.map(item => `
+            <div class="p-3 hover:bg-gray-50 rounded cursor-pointer border-b border-gray-100 last:border-b-0" 
+                 onclick="window.location.href='${item.url}'">
+                <h3 class="font-medium text-gray-900">${item.title}</h3>
+                <p class="text-sm text-gray-600 mt-1">${item.description}</p>
+            </div>
+        `).join('');
+        
+        searchResults.innerHTML = resultsHTML;
+    }
 }
 
-function isTablet() {
-    return window.innerWidth > 768 && window.innerWidth <= 1024;
-}
+// Error handling
+window.addEventListener('error', function(e) {
+    console.error('JavaScript Error:', e.error);
+    // You could send this to an error tracking service
+});
 
-function isDesktop() {
-    return window.innerWidth > 1024;
+// Service Worker registration (for PWA features)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(function(error) {
+                console.log('ServiceWorker registration failed');
+            });
+    });
 }
 
 // Performance monitoring
@@ -634,25 +730,6 @@ function initPerformanceMonitoring() {
 
 // Initialize performance monitoring
 initPerformanceMonitoring();
-
-// Error handling
-window.addEventListener('error', function(e) {
-    console.error('JavaScript Error:', e.error);
-    // You could send this to an error tracking service
-});
-
-// Service Worker registration (for PWA features)
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-            .then(function(registration) {
-                console.log('ServiceWorker registration successful');
-            })
-            .catch(function(error) {
-                console.log('ServiceWorker registration failed');
-            });
-    });
-}
 
 // Export functions for global use
 window.VISHWAVASU = {
