@@ -1,0 +1,66 @@
+{
+  "name": "vishwavasu-technologies-website",
+  "version": "1.0.0",
+  "description": "Professional company profile website for VISHWAVASU TECHNOLOGIES PRIVATE LIMITED - A modern, responsive website showcasing software development services",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx live-server --port=3000 --open=/index.html",
+    "build": "npm run compile-scss && npm run minify-css && npm run minify-js",
+    "compile-scss": "sass assets/scss/style.scss assets/css/compiled.css",
+    "minify-css": "cleancss -o assets/css/style.min.css assets/css/style.css",
+    "minify-js": "uglifyjs assets/js/script.js -o assets/js/script.min.js",
+    "watch-scss": "sass --watch assets/scss/style.scss:assets/css/compiled.css",
+    "dev": "concurrently \"npm run watch-scss\" \"npm run start\"",
+    "lint": "eslint assets/js/*.js",
+    "format": "prettier --write \"**/*.{html,css,js,scss}\"",
+    "validate-html": "html-validate *.html",
+    "optimize-images": "imagemin assets/images/* --out-dir=assets/images/optimized",
+    "lighthouse": "lighthouse http://localhost:3000 --output=html --output-path=./lighthouse-report.html",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "vishwavasu",
+    "technologies",
+    "software",
+    "development",
+    "website",
+    "company",
+    "profile",
+    "responsive",
+    "modern",
+    "html5",
+    "css3",
+    "scss",
+    "tailwind",
+    "javascript"
+  ],
+  "author": "VISHWAVASU TECHNOLOGIES PRIVATE LIMITED",
+  "license": "MIT",
+  "devDependencies": {
+    "clean-css-cli": "^5.6.2",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "html-validate": "^8.7.4",
+    "imagemin": "^8.0.1",
+    "imagemin-cli": "^7.0.0",
+    "lighthouse": "^11.4.0",
+    "live-server": "^1.2.2",
+    "prettier": "^3.1.1",
+    "sass": "^1.69.5",
+    "uglify-js": "^3.17.4"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vishwavasu-technologies/company-website.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vishwavasu-technologies/company-website/issues"
+  },
+  "homepage": "https://vishwavasu.com"
+}
