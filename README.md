@@ -1,7 +1,7 @@
 # VISHWAVASU TECHNOLOGIES PRIVATE LIMITED
 ## Professional Company Profile Website
 
- modern, responsive, and feature-rich company profile website built with HTML5, CSS3, SCSS, Tailwind CSS, and JavaScript.
+A modern, responsive, and feature-rich company profile website built with HTML5, CSS3, SCSS, Tailwind CSS, and JavaScript.
 
 ![Website Preview](https://via.placeholder.com/800x400/667eea/ffffff?text=VISHWAVASU+TECHNOLOGIES)
 
